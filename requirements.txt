@@ -3,6 +3,8 @@ matplotlib
 seaborn
 pandas
 beautifulsoup4
-networkx
 scipy
-pygraphviz
+scikit-learn
+plotly
+kaleido
+langdetect
