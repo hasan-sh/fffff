@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 from time import time
+import math
 
 
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -21,6 +22,8 @@ def url_to_html(url):
     return parser_content
 
 
+def get_parent_category_i(cat):
+    return math.floor(int(cat) / 10) * 10
 
 def size_mb(docs):
     """Calculate the size in megabytes (MB) of a list of documents.

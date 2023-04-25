@@ -1,5 +1,6 @@
 import string
 from collections import Counter
+import math
 
 def replace_punctuation_with_space(text):
     # Create a translation table with punctuation replaced by spaces
@@ -26,3 +27,6 @@ def make_id_category(ocms, label_to_id):
         for x in values:
             id_to_category[int(x[0])] = cat_id
     return id_to_category
+
+def get_parent_category_i(cat):
+    return math.floor(int(cat) / 10) * 10
