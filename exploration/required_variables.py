@@ -1,4 +1,4 @@
-zimport utils
+import utils
 import json
 
 # Open a file for reading
