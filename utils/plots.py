@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 from sklearn.metrics import ConfusionMatrixDisplay
 from sklearn.tree import plot_tree
+import numpy as np
+import pandas as pd
+import seaborn as sns
 
 def make_cm(clf, pred, y_test, target_names):
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -45,6 +48,7 @@ def plot_feature_importance(importance, names, model_type, top_n=20):
     plt.title(model_type + 'FEATURE IMPORTANCE')
     plt.xlabel('FEATURE IMPORTANCE')
     plt.ylabel('FEATURE NAMES')
+    plt.show()
     
 def features_importance_rf(clf, feature_names, top_n=20):
 
@@ -64,10 +68,12 @@ def features_importance_rf(clf, feature_names, top_n=20):
     
     
 
-def plot_feature_effects():
+def plot_feature_effects(clf, X_train, feature_names, target_names, verbose=False):
     # learned coefficients weighted by frequency of appearance
     average_feature_effects = clf.coef_ * np.asarray(X_train.mean(axis=0)).ravel()
-
+    
+    target_names = np.sort(target_names)
+    
     for i, label in enumerate(target_names):
         top5 = np.argsort(average_feature_effects[i])[-5:][::-1]
         if i == 0:
@@ -101,9 +107,10 @@ def plot_feature_effects():
         ],
     )
     ax.legend(loc="lower right")
-
-    print("top 5 keywords per class:")
-    print(top)
+    
+    if verbose:
+        print("top 5 keywords per class:")
+        print(top)
 
     return ax
 
