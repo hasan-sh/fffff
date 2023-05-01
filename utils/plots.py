@@ -5,7 +5,11 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-def make_cm(clf, pred, y_test, target_names):
+def make_cm(clf, pred, y_test, target_names, to_labels=None):
+    
+    if to_labels:
+        target_names = [f'{to_labels[i]} ({i})' for i in target_names]
+        
     fig, ax = plt.subplots(figsize=(10, 5))
     ConfusionMatrixDisplay.from_predictions(y_test, pred, ax=ax)
     ax.xaxis.set_ticklabels(target_names, rotation = 90)
@@ -16,7 +20,11 @@ def make_cm(clf, pred, y_test, target_names):
     
     
     
-def create_dt_decisions(tree, feature_names, target_names, save=False):
+def create_dt_decisions(tree, feature_names, target_names, save=False, to_labels=None):
+    
+    if to_labels:
+        target_names = [f'{to_labels[i]} ({i})' for i in target_names]
+        
     fig, axes = plt.subplots(nrows = 1,ncols = 1, figsize = (64, 64), dpi=300)
     plot_tree(tree,
                    feature_names = feature_names, 
@@ -40,14 +48,23 @@ def plot_feature_importance(importance, names, model_type, top_n=20):
     
     fi_df = fi_df[:top_n]
     
+#     fig, ax = plt.subplots(figsize=(10, 8))
+#     ax.barh(x=fi_df['feature_importance'], y=fi_df['feature_names'],  alpha=0.5)
+
+#     ax.set_xlabel('Average Feature Importance')
+#     ax.legend()
+#     ax.set_title(f'Top {top_k} Feature Importance per Target Class')
+    
+    
     #Define size of bar plot
     plt.figure(figsize=(10,8))
     #Plot Searborn bar chart
     sns.barplot(x=fi_df['feature_importance'], y=fi_df['feature_names'])
     #Add chart labels
-    plt.title(model_type + 'FEATURE IMPORTANCE')
+    plt.title(model_type + ' FEATURE IMPORTANCE')
     plt.xlabel('FEATURE IMPORTANCE')
     plt.ylabel('FEATURE NAMES')
+    plt.legend()
     plt.show()
     
 def features_importance_rf(clf, feature_names, top_n=20):
@@ -68,11 +85,14 @@ def features_importance_rf(clf, feature_names, top_n=20):
     
     
 
-def plot_feature_effects(clf, X_train, feature_names, target_names, verbose=False):
+def plot_feature_effects(clf, X_train, feature_names, target_names, verbose=False, to_labels=None):        
     # learned coefficients weighted by frequency of appearance
     average_feature_effects = clf.coef_ * np.asarray(X_train.mean(axis=0)).ravel()
     
     target_names = np.sort(target_names)
+    
+    if to_labels:
+        target_names = [f'{to_labels[i]} ({i})' for i in target_names]
     
     for i, label in enumerate(target_names):
         top5 = np.argsort(average_feature_effects[i])[-5:][::-1]

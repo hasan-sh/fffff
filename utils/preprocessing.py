@@ -18,7 +18,7 @@ def remove_punct(token):
     return re.sub(r'[^\w\s]', '', token)
     
 # turn a doc into clean tokens
-def tokenize_data(doc):
+def tokenize_data(doc, exclude=[]):
     if insufficient_info(doc):
         return []
     # print(doc)

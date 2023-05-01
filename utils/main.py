@@ -62,6 +62,7 @@ def load_dataset(file_path,
                  verbose=False, 
                  balanced=False, 
                  chosen_categories = [220, 230, 240],
+                 exclude=[],
                  specific_cat=None,
                  target_label='parent_ocms',
                  exact=False,
@@ -93,7 +94,6 @@ def load_dataset(file_path,
         #     data = df[ df['ocms_list'].map(lambda x: len(x) == 1 and x[0] == specific_cat )]
             
     else:
-        print(chosen_categories)
         data = df[ df['ocms_list'].map(lambda x: len(x) == 1 and x[0] in chosen_categories )]
     
 
@@ -104,23 +104,27 @@ def load_dataset(file_path,
         
     t0 = time()
     
-    vectorizer = TfidfVectorizer(
-        sublinear_tf=True, 
-        max_df=0.5, 
-        min_df=5, 
-        tokenizer=preprocessing.tokenize_data,
-        stop_words="english"
-    )
-    
-    tfidf_text = vectorizer.fit_transform(data['textrecord'])
-    
+ 
     
     # Split data into training and testing sets
     test_data = data[target_label] 
     
     if specific_cat and exact:
         test_data = data['ocms_list'].apply(lambda x: 1 if len(x) == 1 and specific_cat in x else 0)
-        
+    
+    
+    
+    vectorizer = TfidfVectorizer(
+        sublinear_tf=True, 
+        max_df=0.5, 
+        min_df=5, 
+        tokenizer=lambda doc: preprocessing.tokenize_data(doc, exclude),
+        stop_words="english"
+    )
+    
+    tfidf_text = vectorizer.fit_transform(data['textrecord'])
+    
+    
     X_train, X_test, y_train, y_test = train_test_split(tfidf_text, test_data, test_size=0.2)
     
     duration_train = time() - t0
@@ -129,7 +133,7 @@ def load_dataset(file_path,
     # target_names = data['parent_label_name'].unique() if target_label == 'parent_ocms' else data['label_name'].unique()
     target_names = data['ocms'].unique()# if target_label == 'parent_ocms' else data['label_name'].unique()
     if exact:
-        target_names = [1, 0]
+        target_names = [str(specific_cat), str(get_parent_category_i(specific_cat))]
     
     # Extracting features from the test data using the same vectorizer
     # t0 = time()
