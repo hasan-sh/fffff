@@ -1,6 +1,7 @@
 import re
 import string
 from nltk.corpus import stopwords
+import numpy as np
 
 stop_words = set(stopwords.words('english'))
 
@@ -48,4 +49,6 @@ def tokenize_data(doc, exclude=[]):
     # filter out short tokens
     tokens = [word for word in tokens if len(word) > 1]
     
+    if exclude:
+        tokens = [word for word in tokens if not np.any([re.match(word, t) for t in exclude])]
     return tokens
