@@ -19,7 +19,7 @@ def remove_punct(token):
     return re.sub(r'[^\w\s]', '', token)
     
 # turn a doc into clean tokens
-def tokenize_data(doc, exclude=[]):
+def tokenize_data(doc, **kwargs):
     if insufficient_info(doc):
         return []
     # print(doc)
@@ -35,10 +35,11 @@ def tokenize_data(doc, exclude=[]):
     table = str.maketrans('', '', string.punctuation)
     tokens = [w.translate(table) if not remove_punct(w).isnumeric() else w 
               for w in tokens]
-    
-    # filter out stop words
-    # tokens = [w for w in tokens if not remove_punct(w).lower() in stop_words]
-    tokens = [w for w in tokens if not w in stop_words]
+
+    if kwargs.get('stopwords'):
+        # filter out stop words
+        # tokens = [w for w in tokens if not remove_punct(w).lower() in stop_words]
+        tokens = [w for w in tokens if not w in stop_words]
     
     # remove remaining tokens that are not alphabetic or numeric
     tokens = [word  for word in tokens if remove_punct(word).isalpha()
@@ -49,6 +50,6 @@ def tokenize_data(doc, exclude=[]):
     # filter out short tokens
     tokens = [word for word in tokens if len(word) > 1]
     
-    if exclude:
-        tokens = [word for word in tokens if not np.any([re.match(word, t) for t in exclude])]
+    if kwargs.get('exclude'):
+        tokens = [word for word in tokens if not np.any([re.match(word, t) for t in kwargs.get('exclude')])]
     return tokens
