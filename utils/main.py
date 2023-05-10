@@ -170,6 +170,12 @@ def load_dataset(file_path,
     return data, X_train, X_test, y_train, y_test, feature_names, target_names
 
 
+def filter_other_ocms(df, cat):
+    parent_cat = get_parent_category_i(cat)
+    
+    df['ocms'] = df['ocms_list'].apply(lambda x: str(list(filter(lambda i: parent_cat == get_parent_category_i(i), x))[0]))
+
+    return df
 
 
 def load_dataset_genearal(file_path, 
@@ -180,6 +186,7 @@ def load_dataset_genearal(file_path,
                  specific_cat=None,
                  target_label='parent_ocms',
                  exact=False,
+                 stopwords=True,
                  sample=None):
     """Load and vectorize the 20 newsgroups dataset."""
     # CHECK OUT: 310, 340, 400, 520, 570, 580, 870] activities, building structures, machines, recreation, interpersonal relations, marriage, education.
@@ -189,21 +196,24 @@ def load_dataset_genearal(file_path,
     df['ocms_list'] = df['ocms'].str.split()
     df['ocms_list'] = df['ocms_list'].apply(lambda x: [int(i) for i in x])
     
-    if balanced:
-        # same samples
-        minimum = 1442
-        data = []
-        for cat in chosen_categories:
-            data.append(df[df[target_label] == cat][:minimum])
-        data = pd.concat(data)
-    elif not specific_cat is None:
+    if not specific_cat is None:
         # data = df[ df['ocms_list'].map(lambda x: np.all([get_parent_category_i(cat) == specific_cat for cat in x]) )]
         
         # if not exact:
             # data = df[ df['ocms_list'].map(lambda x: (specific_cat not in x and np.all([get_parent_category_i(cat) == get_parent_category_i(specific_cat) for cat in x])) 
             #                                           or (len(x) == 1 and x[0] == specific_cat) )]
-            data = df[ df['ocms_list'].map(lambda x: (specific_cat not in x and len(x) == 1 and get_parent_category_i(x[0]) == get_parent_category_i(specific_cat) ) 
-                                                      or (len(x) == 1 and x[0] == specific_cat) )]
+            data = df[ df['ocms_list'].map(lambda x: 
+                                           (specific_cat not in x and 
+                                            len([cat for cat in x if get_parent_category_i(cat) == get_parent_category_i(specific_cat)]) == 1 ) 
+                                           
+                                           or (specific_cat in x and 
+                                                     not np.any([specific_cat != cat and 
+                                                                 get_parent_category_i(cat) == get_parent_category_i(specific_cat) for cat in x]) )
+                                          )]
+            
+            data = filter_other_ocms(data, specific_cat)
+            
+            # data['ocms'] = data['ocms'].apply(lambda x: )
         # else:
         #     data = df[ df['ocms_list'].map(lambda x: len(x) == 1 and x[0] == specific_cat )]
             
@@ -232,7 +242,7 @@ def load_dataset_genearal(file_path,
         sublinear_tf=True, 
         max_df=0.5, 
         min_df=5, 
-        tokenizer=lambda doc: preprocessing.tokenize_data(doc, exclude),
+        tokenizer=lambda doc: preprocessing.tokenize_data(doc, exclude=exclude, stopwords=stopwords),
         stop_words="english"
     )
     

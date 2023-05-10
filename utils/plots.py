@@ -29,8 +29,8 @@ def plot_per_culture(df, model, with_incorrect=False, top_k=5):
     fig = go.Figure(
         layout_title=f'Top {top_k} Correct Cultures .',
         layout_title_x=0.5,
-        layout_xaxis_title='Correctly Classified',
-        layout_yaxis_title='Cultures',
+        layout_xaxis_title='Cultures',
+        layout_yaxis_title='Correctly Classified',
     )
     culture_dict = defaultdict(int)
     for cul in correct['culture'].iteritems():
