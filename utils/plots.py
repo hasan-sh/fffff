@@ -27,13 +27,14 @@ def plot_per_culture(df, model, with_incorrect=False, top_k=5):
 #     per_culture = correct.groupby('culture').count('ocms')
     
     fig = go.Figure(
+        layout_height=400,
         layout_title=f'Top {top_k} Correct Cultures .',
         layout_title_x=0.5,
-        layout_xaxis_title='Cultures',
-        layout_yaxis_title='Correctly Classified',
+        layout_xaxis_title='Correctly Classified',
+        layout_yaxis_title='Cultures',
     )
     culture_dict = defaultdict(int)
-    for cul in correct['culture'].iteritems():
+    for cul in correct['culture'].items():
         culture_dict[cul[1]] += 1
     culture_dict = {k: v for k, v in culture_dict.items() if v >= top_k}
 
@@ -48,6 +49,9 @@ def plot_per_culture(df, model, with_incorrect=False, top_k=5):
         culture_dict = {k: v for k, v in culture_dict.items() if v >= top_k}
         fig.add_bar(x=list(culture_dict.keys()), y=list(culture_dict.values()), name='incorrect')
 
+    
+    if not culture_dict:
+        return fig
         
     fig.show()
     return fig

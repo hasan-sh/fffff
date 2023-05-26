@@ -62,13 +62,14 @@ def load_dataset(file_path,
                  verbose=False, 
                  balanced=False, 
                  chosen_categories = [220, 230, 240],
+                 cultures=None,
                  exclude=[],
                  specific_cat=None,
                  target_label='parent_ocms',
                  exact=False,
                  stopwords=True,
                  sample=None):
-    """Load and vectorize the 20 newsgroups dataset."""
+    """Load and vectorize the eHRAF dataset."""
     # CHECK OUT: 310, 340, 400, 520, 570, 580, 870] activities, building structures, machines, recreation, interpersonal relations, marriage, education.
     # chosen_categories = [220, 230, 240]
     df = pd.read_csv(file_path, encoding='utf-8')
@@ -101,6 +102,9 @@ def load_dataset(file_path,
     if sample:
         data = data[:sample]
 
+    if cultures:
+        data = data[ data['culture'].map(lambda culture: np.any([culture == cul for cul in cultures])) ]
+        
         
         
     t0 = time()

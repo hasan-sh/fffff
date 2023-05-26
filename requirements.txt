@@ -6,7 +6,7 @@ beautifulsoup4
 scipy
 scikit-learn
 plotly
-kaleido
+kaleido==0.1.0post1
 langdetect
 spacy
 nltk
