@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from sklearn.metrics import ConfusionMatrixDisplay
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 from sklearn.tree import plot_tree
 import numpy as np
 import pandas as pd
@@ -11,9 +11,13 @@ import plotly.graph_objects as go
 def make_cm(clf, pred, y_test, target_names, to_labels=None):
     
     if to_labels:
-        target_names = [f'{to_labels[i]} ({i})' for i in target_names]
+        target_names = [f'{to_labels[i]} ({i})' for i in clf.classes_]
+    else:
+        target_names = clf.classes_
         
     fig, ax = plt.subplots(figsize=(10, 5))
+    # print(target_names, clf.classes_)
+    
     ConfusionMatrixDisplay.from_predictions(y_test, pred, ax=ax)
     ax.xaxis.set_ticklabels(target_names, rotation = 90)
     ax.yaxis.set_ticklabels(target_names)
@@ -38,8 +42,9 @@ def plot_per_culture(df, model, with_incorrect=False, top_k=5):
         culture_dict[cul[1]] += 1
     culture_dict = {k: v for k, v in culture_dict.items() if v >= top_k}
 
-    # print(culture_dict.values())
-    fig.add_bar(x=list(culture_dict.keys()), y=list(culture_dict.values()), name='correct')
+    culture_dict = sorted(culture_dict.items(), key=lambda x: x[1], reverse=True)[:top_k]
+    # print(culture_dict)
+    fig.add_bar(x=[a for a, _ in culture_dict], y=[b for _, b in culture_dict], name='correct')
     
     if with_incorrect:
         culture_dict = defaultdict(int)
@@ -47,8 +52,8 @@ def plot_per_culture(df, model, with_incorrect=False, top_k=5):
         for cul in incorrect['culture'].iteritems():
             culture_dict[cul[1]] += 1
         culture_dict = {k: v for k, v in culture_dict.items() if v >= top_k}
-        fig.add_bar(x=list(culture_dict.keys()), y=list(culture_dict.values()), name='incorrect')
-
+        fig.add_bar(x=[a for a, _ in culture_dict], y=[b for _, b in culture_dict], name='incorrect')
+    
     
     if not culture_dict:
         return fig
@@ -104,6 +109,35 @@ def plot_feature_importance(importance, names, model_type, top_n=20):
     plt.ylabel('FEATURE NAMES')
     plt.legend()
     plt.show()
+
+
+# def plot_feature_importance(rf_model, feature_names, class_labels, top_k=10):
+#     """
+#     Plot the class-specific feature importance for a Random Forest classifier.
+
+#     Parameters:
+#         rf_model (RandomForestClassifier): Trained Random Forest classifier.
+#         feature_names (list): List of feature names (words).
+#         class_labels (list): List of class labels.
+#         top_k (int): Number of top features to display (default: 10).
+#     """
+#     importances = rf_model.feature_importances_
+#     num_classes = rf_model.n_classes_
+
+#     plt.figure(figsize=(10, 6))
+
+#     for i in range(num_classes):
+#         class_importances = importances[i::num_classes]
+#         top_indices = np.argsort(class_importances)[-top_k:]
+#         top_importances = class_importances[top_indices]
+
+#         plt.barh(np.arange(top_k), top_importances, label=class_labels[i])
+#         plt.yticks(np.arange(top_k), [feature_names[j] for j in top_indices])
+#         plt.xlabel('Importance')
+#         plt.title('Random Forest Class-Specific Feature Importance')
+#         plt.legend()
+
+#     plt.show()
     
 def features_importance_rf(clf, feature_names, top_n=20):
 
@@ -120,10 +154,51 @@ def features_importance_rf(clf, feature_names, top_n=20):
     ax.set_ylabel("Mean decrease in impurity")
     fig.tight_layout()
     
-    
+
+
+def plot_feature_effects(clf, 
+                         X_train,
+                         feature_names,
+                         target_names,
+                         to_labels=False,
+                         top_k=10,
+                         verbose=False):
+    # learned coefficients weighted by frequency of appearance
+    average_feature_effects = clf.coef_ * np.asarray(X_train.mean(axis=0)).ravel()
+
+    target_names = np.sort(target_names)
+    if to_labels:
+        target_names = [to_labels[i] for i in target_names]
+        
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    # Get top k features for each target class
+    for i, label in enumerate(target_names):
+        # if len(average_feature_effects) < 1:
+        #     print(i, 'label', label, average_feature_effects)
+        top_indices = np.argsort(average_feature_effects[i if len(average_feature_effects) > 1 else 0])[::-1][:top_k]
+        top_k_words = feature_names[top_indices]
+        top_k_effects = average_feature_effects[i if len(average_feature_effects) > 1 else 0, top_indices]
+        ax.barh(top_k_words, top_k_effects, label=label, alpha=0.5)
+
+    ax.set_xlabel('Average Feature Effects')
+    ax.legend()
+    ax.set_title(f'Top {top_k} Feature Effects per Target Class')
+
+    if verbose:
+        # Display top k keywords for each class in a table
+        top_k_keywords = pd.DataFrame()
+        for i, label in enumerate(target_names):
+            top_indices = np.argsort(average_feature_effects[i if len(average_feature_effects) > 1 else 0])[::-1][:top_k]
+            top_k_words = feature_names[top_indices]
+            top_k_keywords[label] = top_k_words
+        print(f"Top {top_k} Keywords per Class:\n{top_k_keywords}")
+    plt.show()
+    return ax
+                             
     
 
-def plot_feature_effects(clf, X_train, feature_names, target_names, verbose=False, to_labels=None):        
+def plot_feature_effects_detailed(clf, X_train, feature_names, target_names, verbose=False, to_labels=None):        
     # learned coefficients weighted by frequency of appearance
     average_feature_effects = clf.coef_ * np.asarray(X_train.mean(axis=0)).ravel()
     
@@ -146,7 +221,7 @@ def plot_feature_effects(clf, X_train, feature_names, target_names, verbose=Fals
     # plot feature effects
     bar_size = 0.25
     padding = 0.75
-    y_locs = np.arange(len(top_indices)) * (4 * bar_size + padding)
+    y_locs = np.arange(len(top_indices)) * (8 * bar_size + padding)
 
     fig, ax = plt.subplots(figsize=(10, 8))
     for i, label in enumerate(target_names):
@@ -172,5 +247,4 @@ def plot_feature_effects(clf, X_train, feature_names, target_names, verbose=Fals
 
     return ax
 
-
-    # _ = plot_feature_effects().set_title("Average feature effect on the original data")
+    

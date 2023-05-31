@@ -125,7 +125,7 @@ def load_dataset(file_path,
         max_df=0.5, 
         min_df=5, 
         tokenizer=lambda doc: preprocessing.tokenize_data(doc, exclude=exclude, stopwords=stopwords),
-        stop_words="english"
+        # stop_words="english"
     )
     
     tfidf_text = vectorizer.fit_transform(data['textrecord'])
