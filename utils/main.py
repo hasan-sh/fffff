@@ -138,7 +138,7 @@ def load_dataset(file_path,
     # order of labels in `target_names` can be different from `categories`
     # target_names = data['parent_label_name'].unique() if target_label == 'parent_ocms' else data['label_name'].unique()
     target_names = data['ocms'].unique()# if target_label == 'parent_ocms' else data['label_name'].unique()
-    if exact:
+    if specific_cat and exact:
         target_names = [str(specific_cat), str(get_parent_category_i(specific_cat))]
     
     # Extracting features from the test data using the same vectorizer
