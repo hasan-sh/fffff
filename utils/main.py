@@ -58,9 +58,46 @@ def tfidf_it(data, verbose=False):
 """
 load_vectorize_df(if df, don't load, use it.)
 """
+
+"""
+if two specific cats or chosen cats are given and some have less samples, we could upsample from the ones with fewer instances:
+    
+"""
+
+
+def upsample(df, data):
+    if len(data['ocms'].value_counts()) > 2:
+        values = list(data['ocms'].value_counts().sort_values().items())
+        _, maximum = values[-1]
+        for ocm, minimum in values[:-1]:
+            ocm = int(ocm)
+            data1 = df[ df['ocms_list'].map(lambda x: len(x) != 1 and ocm in x and 
+                                    np.all([get_parent_category_i(ocm) != get_parent_category_i(cat) for cat in x if cat != ocm]) )]
+            
+            to_draw = min(maximum - minimum, len(data1))
+            data1 = data1.sample(to_draw)
+            data1['ocms'] = str(ocm)
+            data1['ocms_list'] = data1['ocms'].apply(lambda x: [int(x)])
+            data = pd.concat([data, data1])
+    else:
+        ocm = int(data['ocms'].value_counts().idxmin())
+        minimum = data['ocms'].value_counts().min()
+        maximum = data['ocms'].value_counts().max()
+        
+        data1 = df[ df['ocms_list'].map(lambda x: len(x) != 1 and ocm in x and 
+                                    np.all([get_parent_category_i(ocm) != get_parent_category_i(cat) for cat in x if cat != ocm]) )]
+        
+        to_draw = min(maximum - minimum, len(data1))
+        data1 = data1.sample(to_draw)
+        data1['ocms'] = str(ocm)
+        data1['ocms_list'] = data1['ocms'].apply(lambda x: [int(x)])
+        data = pd.concat([data, data1])
+    return data
+    
+                     
 def load_dataset(file_path, 
                  verbose=False, 
-                 balanced=False, 
+                 balanced=True, 
                  chosen_categories = [220, 230, 240],
                  cultures=None,
                  exclude=[],
@@ -77,28 +114,32 @@ def load_dataset(file_path,
     df['ocms_list'] = df['ocms'].str.split()
     df['ocms_list'] = df['ocms_list'].apply(lambda x: [int(i) for i in x])
     
-    if balanced:
-        # same samples
-        minimum = 1442
-        data = []
-        for cat in chosen_categories:
-            data.append(df[df[target_label] == cat][:minimum])
-        data = pd.concat(data)
-    elif not specific_cat is None:
+    if not specific_cat is None:
         # data = df[ df['ocms_list'].map(lambda x: np.all([get_parent_category_i(cat) == specific_cat for cat in x]) )]
         
         # if not exact:
             # data = df[ df['ocms_list'].map(lambda x: (specific_cat not in x and np.all([get_parent_category_i(cat) == get_parent_category_i(specific_cat) for cat in x])) 
             #                                           or (len(x) == 1 and x[0] == specific_cat) )]
+            """
+                -> if an instance doesn't have that specific cat, but its parent cat is the same as the parent cat of the given specific cat, it's chosen. 
+                OR
+                -> if an instance has only that specific cat, it's chosen.
+            """
             data = df[ df['ocms_list'].map(lambda x: (specific_cat not in x and len(x) == 1 and get_parent_category_i(x[0]) == get_parent_category_i(specific_cat) ) 
                                                       or (len(x) == 1 and x[0] == specific_cat) )]
         # else:
         #     data = df[ df['ocms_list'].map(lambda x: len(x) == 1 and x[0] == specific_cat )]
             
     else:
+        """
+            -> if an instance has one OCM code that's in the chosen cats, it's chosen.
+        """
         data = df[ df['ocms_list'].map(lambda x: len(x) == 1 and x[0] in chosen_categories )]
     
 
+    if balanced:
+        data = upsample(df, data)
+        
     if sample:
         data = data[:sample]
 
@@ -116,23 +157,23 @@ def load_dataset(file_path,
     
     if specific_cat and exact:
         # test_data = data['ocms_list'].apply(lambda x: 1 if len(x) == 1 and specific_cat in x else 0)
+        data['ocms_list'] = data['ocms_list'].apply(lambda x: specific_cat if len(x) == 1 and specific_cat in x else get_parent_category_i(specific_cat))
+        data['ocms'] = data['ocms_list'].apply(lambda x: str(specific_cat) if len(x) == 1 and specific_cat in x else str(get_parent_category_i(specific_cat)))
         test_data = data['ocms_list'].apply(lambda x: str(specific_cat) if len(x) == 1 and specific_cat in x else str(get_parent_category_i(specific_cat)))
+        
+    print(data['textrecord'].shape, test_data.shape)
+    X_train, X_test, y_train, y_test = train_test_split(data['textrecord'], test_data, test_size=0.3)
+        
+    # vectorizer = TfidfVectorizer(
+    #     sublinear_tf=True, 
+    #     max_df=0.5, 
+    #     min_df=5, 
+    #     tokenizer=lambda doc: preprocessing.tokenize_data(doc, exclude=exclude, stopwords=stopwords),
+    #     # stop_words="english"
+    # )
     
-    
-    
-    vectorizer = TfidfVectorizer(
-        sublinear_tf=True, 
-        max_df=0.5, 
-        min_df=5, 
-        tokenizer=lambda doc: preprocessing.tokenize_data(doc, exclude=exclude, stopwords=stopwords),
-        # stop_words="english"
-    )
-    
-    tfidf_text = vectorizer.fit_transform(data['textrecord'])
-    
-    
-    X_train, X_test, y_train, y_test = train_test_split(tfidf_text, test_data, test_size=0.2)
-    
+    # X_test_tra = vectorizer.fit_transform(data['textrecord'])
+
     duration_train = time() - t0
     
     # order of labels in `target_names` can be different from `categories`
@@ -146,7 +187,7 @@ def load_dataset(file_path,
     # X_test = vectorizer.transform(data_test.data)
     # duration_test = time() - t0
 
-    feature_names = vectorizer.get_feature_names_out()
+    # feature_names = vectorizer.get_feature_names_out()
 
     if verbose:
 
@@ -160,18 +201,18 @@ def load_dataset(file_path,
         )
         # print(f"{len(data_test.data)} documents - {data_test_size_mb:.2f}MB (test set)")
         print(f"{len(target_names)} categories")
-        print(
-            f"vectorize training done in {duration_train:.3f}s "
-            f"at {data_train_size_mb / duration_train:.3f}MB/s"
-        )
-        print(f"n_samples: {X_train.shape[0]}, n_features: {X_train.shape[1]}")
         # print(
-        #     f"vectorize testing done in {duration_test:.3f}s "
-        #     f"at {data_test_size_mb / duration_test:.3f}MB/s"
+        #     f"vectorize training done in {duration_train:.3f}s "
+        #     f"at {data_train_size_mb / duration_train:.3f}MB/s"
         # )
-        print(f"n_samples: {X_test.shape[0]}, n_features: {X_test.shape[1]}")
+        # print(f"n_samples: {X_train.shape[0]}, n_features: {X_train.shape[1]}")
+        # # print(
+        # #     f"vectorize testing done in {duration_test:.3f}s "
+        # #     f"at {data_test_size_mb / duration_test:.3f}MB/s"
+        # # )
+        # print(f"n_samples: {X_test.shape[0]}, n_features: {X_test.shape[1]}")
 
-    return data, X_train, X_test, y_train, y_test, feature_names, target_names
+    return data, X_train, X_test, y_train, y_test, target_names
 
 
 def filter_other_ocms(df, cat):
@@ -184,7 +225,7 @@ def filter_other_ocms(df, cat):
 
 def load_dataset_genearal(file_path, 
                  verbose=False, 
-                 balanced=False, 
+                 balanced=True, 
                  chosen_categories = [220, 230, 240],
                  exclude=[],
                  specific_cat=None,
@@ -225,6 +266,9 @@ def load_dataset_genearal(file_path,
         data = df[ df['ocms_list'].map(lambda x: len(x) == 1 and x[0] in chosen_categories )]
     
 
+    if balanced:
+        data = upsample(df, data)
+        
     if sample:
         data = data[:sample]
 
