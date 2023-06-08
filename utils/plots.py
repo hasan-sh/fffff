@@ -8,7 +8,54 @@ from collections import defaultdict
 import plotly.graph_objects as go
 
 
-def make_cm(clf, pred, y_test, target_names, to_labels=None):
+
+
+def make_cms(clf_performances, target_names, to_labels=None, iteration=0):
+    fig_title = f'output/confusion_matrix/{iteration}_{"_".join(target_names)}.png'
+    
+
+        
+    fig, ax = plt.subplots(1, len(clf_performances), figsize=(12, 6),  sharey=True, sharex=True)
+    
+    # print(target_names, clf.classes_)
+
+    for i, (clf, pred, y_test) in enumerate(clf_performances):
+        if to_labels:
+            target_names = [f'{to_labels[i]} ({i})' for i in clf.classes_]
+        else:
+            target_names = clf.classes_
+
+
+        cf_matrix = confusion_matrix(y_test, pred)
+        # print(cf_matrix)
+        sns.heatmap(cf_matrix, ax=ax[i], cbar=i==len(clf_performances)-1, annot=True, fmt=".0f")
+
+        # disp = ConfusionMatrixDisplay.from_predictions(y_test, pred, ax=ax[i], display_labels=target_names)
+        # # disp.ax_.set_title(key)
+        # disp.im_.colorbar.remove()
+        # disp.ax_.set_xlabel('')
+        # if i != 0:
+        #     disp.ax_.set_ylabel('')
+        
+        ax[i].xaxis.set_ticklabels(target_names, rotation = 90)
+        ax[i].yaxis.set_ticklabels(target_names, rotation = 0)
+        if i == 1:
+            ax[i].set_xlabel('Predicted Label')
+        ax[i].set_ylabel('True Label')
+        _ = ax[i].set_title(
+            f"{clf.__class__.__name__}"
+        )
+
+    # fig.colorbar(disp.im_, ax=ax)
+    fig.tight_layout()
+
+    fig.show()
+    # plt.savefig(f'{clf.__class__.__name__}_{"_".join(target_names)}.png')
+    plt.savefig(fig_title)
+
+    
+def make_cm(clf, pred, y_test, target_names, to_labels=None, iteration=0):
+    fig_title = f'output/{iteration}_{clf.__class__.__name__}_{"_".join(target_names)}.png'
     
     if to_labels:
         target_names = [f'{to_labels[i]} ({i})' for i in clf.classes_]
@@ -17,15 +64,39 @@ def make_cm(clf, pred, y_test, target_names, to_labels=None):
         
     fig, ax = plt.subplots(figsize=(10, 5))
     # print(target_names, clf.classes_)
+
     
-    ConfusionMatrixDisplay.from_predictions(y_test, pred, ax=ax)
+    cf_matrix = confusion_matrix(y_test, pred)
+    # print(cf_matrix)
+    sns.heatmap(cf_matrix, ax=ax, annot=True, fmt=".0f")
+
+    # disp = ConfusionMatrixDisplay.from_predictions(y_test, pred, ax=ax[i], display_labels=target_names)
+    # # disp.ax_.set_title(key)
+    # disp.im_.colorbar.remove()
+    # disp.ax_.set_xlabel('')
+    # if i != 0:
+    #     disp.ax_.set_ylabel('')
+    
     ax.xaxis.set_ticklabels(target_names, rotation = 90)
     ax.yaxis.set_ticklabels(target_names)
-    _ = ax.set_title(
-        f"Confusion Matrix for {clf.__class__.__name__}\non the original documents"
-    )
     
+    ax.set_xlabel('Predicted Label')
+    ax.set_ylabel('True Label')
+    _ = ax.set_title(
+        f"{clf.__class__.__name__}"
+    )
+
+    # disp = ConfusionMatrixDisplay.from_predictions(y_test, pred, ax=ax)
+    
+    
+    # ax.xaxis.set_ticklabels(target_names, rotation = 90)
+    # ax.yaxis.set_ticklabels(target_names)
+    # _ = ax.set_title(
+    #     f"Confusion Matrix for {clf.__class__.__name__}\non the original documents"
+    # )
     fig.show()
+    # plt.savefig(f'{clf.__class__.__name__}_{"_".join(target_names)}.png')
+    plt.savefig(fig_title)
     
 
 def plot_per_culture(df, model, with_incorrect=False, top_k=5):
@@ -165,9 +236,11 @@ def plot_feature_effects(clf,
                          target_names,
                          to_labels=False,
                          top_k=10,
-                         verbose=False):
+                         verbose=False,
+                        iteration=0,):
+    fig_title = f'output/feature_effect/{iteration}_{"_".join(target_names)}.png'
     # learned coefficients weighted by frequency of appearance
-    average_feature_effects = clf.coef_ * np.asarray(X_train.mean(axis=0)).ravel()
+    average_feature_effects = abs(clf.coef_) * np.asarray(X_train.mean(axis=0)).ravel()
 
     target_names = np.sort(target_names)
     if to_labels:
@@ -185,7 +258,8 @@ def plot_feature_effects(clf,
         ax.barh(top_k_words, top_k_effects, label=label, alpha=0.5)
 
     ax.set_xlabel('Average Feature Effects')
-    ax.legend()
+    if len(average_feature_effects) > 1:
+        ax.legend()
     ax.set_title(f'{clf.__class__.__name__}: Feature Effects per Target Class ')
 
     if verbose:
@@ -197,8 +271,27 @@ def plot_feature_effects(clf,
             top_k_keywords[label] = top_k_words
         print(f"Top {top_k} Keywords per Class:\n{top_k_keywords}")
     plt.show()
+    fig.tight_layout()
+    fig.savefig(fig_title)
     return top_k_words
                              
+
+
+# def plot_feature_effects(coef, names, target_names, iteration=0, top=-1):
+#     fig_title = f'output/feature_effect/{iteration}_{"_".join(target_names)}.png'
+#     fig, ax = plt.subplots(figsize=(10, 8))
+#     imp = coef
+#     imp, names = zip(*sorted(list(zip(imp, names))))
+
+#     # Show all features
+#     if top == -1:
+#         top = len(names)
+
+#     ax.barh(range(top), imp[::-1][0:top], align='center', alpha=0.5)
+#     plt.yticks(range(top), names[::-1][0:top])
+#     plt.show()
+#     fig.savefig(fig_title)
+#     return names[::-1][0:top]
     
 
 def plot_feature_effects_detailed(clf, X_train, feature_names, target_names, verbose=False, to_labels=None):        

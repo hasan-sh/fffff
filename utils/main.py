@@ -12,6 +12,7 @@ from sklearn.model_selection import train_test_split
 
 from utils import preprocessing
 
+seed = 27
 
 def url_to_html(url):
     """Scrapes the html content from a web page. Takes a URL string as input and returns an html object. """
@@ -75,7 +76,7 @@ def upsample(df, data):
                                     np.all([get_parent_category_i(ocm) != get_parent_category_i(cat) for cat in x if cat != ocm]) )]
             
             to_draw = min(maximum - minimum, len(data1))
-            data1 = data1.sample(to_draw)
+            data1 = data1.sample(to_draw, random_state=seed)
             data1['ocms'] = str(ocm)
             data1['ocms_list'] = data1['ocms'].apply(lambda x: [int(x)])
             data = pd.concat([data, data1])
@@ -88,7 +89,7 @@ def upsample(df, data):
                                     np.all([get_parent_category_i(ocm) != get_parent_category_i(cat) for cat in x if cat != ocm]) )]
         
         to_draw = min(maximum - minimum, len(data1))
-        data1 = data1.sample(to_draw)
+        data1 = data1.sample(to_draw, random_state=seed)
         data1['ocms'] = str(ocm)
         data1['ocms_list'] = data1['ocms'].apply(lambda x: [int(x)])
         data = pd.concat([data, data1])
@@ -105,7 +106,8 @@ def load_dataset(file_path,
                  target_label='parent_ocms',
                  exact=False,
                  stopwords=True,
-                 sample=None):
+                 sample=None,
+                **kwargs):
     """Load and vectorize the eHRAF dataset."""
     # CHECK OUT: 310, 340, 400, 520, 570, 580, 870] activities, building structures, machines, recreation, interpersonal relations, marriage, education.
     # chosen_categories = [220, 230, 240]
@@ -127,6 +129,11 @@ def load_dataset(file_path,
             """
             data = df[ df['ocms_list'].map(lambda x: (specific_cat not in x and len(x) == 1 and get_parent_category_i(x[0]) == get_parent_category_i(specific_cat) ) 
                                                       or (len(x) == 1 and x[0] == specific_cat) )]
+            if exact:
+                
+                data['ocms_list'] = data['ocms_list'].apply(lambda x: [specific_cat] if len(x) == 1 and specific_cat in x else [get_parent_category_i(specific_cat)])
+                data['ocms'] = data['ocms_list'].apply(lambda x: str(x[0]))
+
         # else:
         #     data = df[ df['ocms_list'].map(lambda x: len(x) == 1 and x[0] == specific_cat )]
             
@@ -155,14 +162,14 @@ def load_dataset(file_path,
     # Split data into training and testing sets
     test_data = data[target_label] 
     
-    if specific_cat and exact:
+    # if specific_cat and exact:
         # test_data = data['ocms_list'].apply(lambda x: 1 if len(x) == 1 and specific_cat in x else 0)
-        data['ocms_list'] = data['ocms_list'].apply(lambda x: specific_cat if len(x) == 1 and specific_cat in x else get_parent_category_i(specific_cat))
-        data['ocms'] = data['ocms_list'].apply(lambda x: str(specific_cat) if len(x) == 1 and specific_cat in x else str(get_parent_category_i(specific_cat)))
-        test_data = data['ocms_list'].apply(lambda x: str(specific_cat) if len(x) == 1 and specific_cat in x else str(get_parent_category_i(specific_cat)))
+        # data['ocms_list'] = data['ocms_list'].apply(lambda x: [specific_cat] if len(x) == 1 and specific_cat in x else [get_parent_category_i(specific_cat)])
+        # data['ocms'] = data['ocms_list'].apply(lambda x: str(specific_cat) if len(x) == 1 and specific_cat in x else str(get_parent_category_i(specific_cat)))
+        # test_data = data['ocms_list'].apply(lambda x: str(specific_cat) if len(x) == 1 and specific_cat in x else str(get_parent_category_i(specific_cat)))
         
     print(data['textrecord'].shape, test_data.shape)
-    X_train, X_test, y_train, y_test = train_test_split(data['textrecord'], test_data, test_size=0.3)
+    X_train, X_test, y_train, y_test = train_test_split(data['textrecord'], test_data, test_size=0.3, random_state=seed)
         
     # vectorizer = TfidfVectorizer(
     #     sublinear_tf=True, 
