@@ -39,9 +39,12 @@ def make_cms(clf_performances, target_names, to_labels=None, iteration=0):
         
         ax[i].xaxis.set_ticklabels(target_names, rotation = 90)
         ax[i].yaxis.set_ticklabels(target_names, rotation = 0)
+        
+        if i == 0:
+            ax[i].set_ylabel('True Label')
         if i == 1:
             ax[i].set_xlabel('Predicted Label')
-        ax[i].set_ylabel('True Label')
+            
         _ = ax[i].set_title(
             f"{clf.__class__.__name__}"
         )
@@ -260,7 +263,7 @@ def plot_feature_effects(clf,
     ax.set_xlabel('Average Feature Effects')
     if len(average_feature_effects) > 1:
         ax.legend()
-    ax.set_title(f'{clf.__class__.__name__}: Feature Effects per Target Class ')
+    ax.set_title(f'{clf.__class__.__name__}: Feature Effects per Target Class (iter.={iteration})')
 
     if verbose:
         # Display top k keywords for each class in a table
