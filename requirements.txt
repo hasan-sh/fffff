@@ -3,6 +3,9 @@ matplotlib
 seaborn
 pandas
 beautifulsoup4
+html5lib
+setuptools
+wheel
 scipy
 scikit-learn
 plotly

@@ -41,41 +41,72 @@ ours
 alone
 """.split()
 
-nlp.Defaults.stop_words -= set(POSSIBLY_NEEDED_STOPWORDS)
-
+nlp.Defaults.stop_words -= set(POSSIBLY_NEEDED_STOPWORDS) # Keep needed (possibly) stopwords.
 
 
 def unneeded_tokens(tokens):
+    """
+    Remove unneeded tokens from a list of tokens.
+
+    Args:
+        tokens (list): List of tokens.
+
+    Returns:
+        list: List of tokens without unneeded tokens.
+    """
     unneeded = ['table', 'graphic', 'caption']
     return [token for token in tokens if not token in unneeded]
 
-def insufficient_info(text : str):
+
+def insufficient_info(text: str):
+    """
+    Check if a text contains insufficient information.
+
+    Args:
+        text (str): The text to check.
+
+    Returns:
+        bool: True if the text contains insufficient information, False otherwise.
+    """
     text = text.strip()
     if text.startswith('~') and text.endswith('~'):
         return True
         
     if text.startswith('[') and text.endswith(']'):
         return True
-    return
+    return False
+
 
 def remove_punct(token):
+    """
+    Remove punctuation from a token.
+
+    Args:
+        token (str): The token to remove punctuation from.
+
+    Returns:
+        str: The token without punctuation.
+    """
     return re.sub(r'[^\w\s]', '', token)
 
 
-# def get_lemma(word):
-#     lemmatizer = WordNetLemmatizer()
-#     lemma = lemmatizer.lemmatize(word)
-#     return lemma
-
-
-# def tokenize_data_legacy(doc, **kwargs):
 def tokenize_data(doc, **kwargs):
+     """
+    Tokenize a document and apply various filters to the tokens.
+
+    Args:
+        doc (str): The document to tokenize.
+        exclude (list, optional): List of words to exclude from the tokens. Defaults to None.
+
+    Returns:
+        list: List of tokens.
+    """
     if insufficient_info(doc):
         return []
 
     tokens = nlp(doc, disable=['parser', 'ner'])
 
-    # filter out punctuation, stopwords, and only keep numeric and alphabetical tokens.
+    # Filter out punctuation, stopwords, and only keep numeric and alphabetical tokens.
     tokens = [token.lemma_ for token in tokens if 
               (token.is_alpha or (token.is_digit and len(token) > 3)) and # only years may be useful.
               not token.is_punct and 
@@ -83,15 +114,14 @@ def tokenize_data(doc, **kwargs):
               # (not token.is_stop or (token.is_stop and not token.text in POSSIBLY_NEEDED_STOPWORDS))
              ] 
     
-    # filter out edge-case words.
+    # Filter out edge-case words.
     tokens = unneeded_tokens(tokens)
     
     if kwargs.get('exclude'):
         tokens = [word for word in tokens if not np.any([re.match(word, t) for t in kwargs.get('exclude')])]
     return tokens
-    
-# turn a doc into clean tokens
-# def tokenize_data(doc, **kwargs):
+
+# Turn a doc into clean tokens.
 def tokenize_data_legacy(doc, **kwargs):
     if insufficient_info(doc):
         return []
