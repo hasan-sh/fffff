@@ -4,7 +4,7 @@
 - Spacy requires the following:
     - python -m spacy download en_core_web_sm
 - Download the main dataset [here](https://drive.google.com/file/d/1_cvSYyxEdfRVTXXihm7TBWEomn7-WOut/view?usp=sharing). Replace it in the `data` directory.
-
+- Finally, you can run `jupyter lab` in order to view the code.
 
 # Data exploration
 **NOTE**: make sure to run all scripts (i.e., python files) from their specific path in the terminal.
