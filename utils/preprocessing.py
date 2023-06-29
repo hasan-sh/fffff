@@ -91,7 +91,7 @@ def remove_punct(token):
 
 
 def tokenize_data(doc, **kwargs):
-     """
+    """
     Tokenize a document and apply various filters to the tokens.
 
     Args:
